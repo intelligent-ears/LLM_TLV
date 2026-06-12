@@ -1,4 +1,8 @@
 #!/usr/bin/env python3
+import sys
+if sys.version_info < (3, 12):
+    print(f"Error: rename_sigs.py requires Python 3.12+. Current version: {sys.version}. Please upgrade.")
+    sys.exit(1)
 
 # Extract the match list from fev_full.eqy and apply the renaming to wip.tlv and copy
 # the fev_full.eqy match section to the fev.eqy match section (which must be empty).
