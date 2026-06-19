@@ -364,6 +364,9 @@ if [[ $NEED_FULL_FEV == false || $MISSING_SV == true ]]; then
   cp feved.tlv ${NEXT_HISTORY_DIR}
   cp fev.eqy ${NEXT_HISTORY_DIR}
   cp status.json ${NEXT_HISTORY_DIR}
+  # Snapshot the tracker and the active task instructions so the history is self-contained.
+  [ -f tracker.md ] && cp tracker.md ${NEXT_HISTORY_DIR}
+  "${script_dir}/get_task.py" current > ${NEXT_HISTORY_DIR}/task.md 2>/dev/null || true
   echo "Incremental FEV succeeded. Updated feved.tlv and feved.sv."
   echo "Recorded wip.tlv in ${NEXT_HISTORY_DIR}"
   
@@ -438,6 +441,9 @@ fi
 cp config.json ${NEXT_HISTORY_DIR}
 cp fev_full*.eqy ${NEXT_HISTORY_DIR}/
 cp status.json ${NEXT_HISTORY_DIR}/
+# Snapshot the tracker and the active task instructions so the history is self-contained.
+[ -f tracker.md ] && cp tracker.md ${NEXT_HISTORY_DIR}/
+"${script_dir}/get_task.py" current > ${NEXT_HISTORY_DIR}/task.md 2>/dev/null || true
 rm -f ${NEXT_HISTORY_DIR}/prepared.sv
 ln -s ../../prepared.sv ${NEXT_HISTORY_DIR}/prepared.sv
 # Remove match_lines.eqy as an indication of completion.
