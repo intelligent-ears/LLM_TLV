@@ -404,7 +404,11 @@ if [[ $NEED_FULL_FEV == false || $MISSING_SV == true ]]; then
   echo "Recorded wip.tlv in ${NEXT_HISTORY_DIR}"
   
   # Checkpoint (not in history/) wip to feved. Our policy is for feved.tlv to be read-only.
-  chmod +w feved.tlv
+  # Remove before copying: when feved.tlv is provisioned read-only in a way that chmod
+  # can't clear (e.g. a bind-mounted file owned by another uid in the sandbox), chmod +w
+  # and cp silently fail, feved.tlv never updates, and get_task.py next blocks on the
+  # wip.tlv/feved.tlv diff. rm-then-cp matches how fully_feved.tlv is handled below.
+  rm -f feved.tlv
   cp wip.tlv feved.tlv
   chmod -w feved.tlv
   # Copy wip.sv (which might be a symlink) to feved.sv (just for reference).
