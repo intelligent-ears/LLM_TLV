@@ -158,7 +158,7 @@ Examples:
         status = 1
 
     if args.dry_run:
-        print(f"Dry run complete. {"No issues found." if status == 0 else "Issues must be resolved (or use -f)."}")
+        print(f"Dry run complete. {'No issues found.' if status == 0 else 'Issues must be resolved (or use -f).'}")
     else:
         if status != 0 and not args.force:
             print("Errors or warnings detected. No changes applied. (Repeat with -f to force renaming.)")
