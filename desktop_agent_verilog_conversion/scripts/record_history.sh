@@ -33,12 +33,14 @@ fi
 mkdir -p "${dir}"
 rm -f history/latest
 ln -s "${name}" history/latest
-[ -f config.json ] && cp config.json "${dir}"
-[ -f wip.tlv ] && cp wip.tlv "${dir}"
+# These files are conversion-directory preconditions, so copy them unguarded.
+cp config.json "${dir}"
+cp wip.tlv "${dir}"
 rm -f "${dir}/feved.tlv"
-[ -f feved.tlv ] && cp feved.tlv "${dir}"
-[ -f fev.eqy ] && cp fev.eqy "${dir}"
-[ -f status.json ] && cp status.json "${dir}"
+cp feved.tlv "${dir}"
+cp fev.eqy "${dir}"
+cp status.json "${dir}"
+# tracker.md may legitimately be absent on an older module, so guard it.
 [ -f tracker.md ] && cp tracker.md "${dir}"
 "${script_dir}/get_task.py" current > "${dir}/task.md" 2>/dev/null || true
 echo "${dir}"

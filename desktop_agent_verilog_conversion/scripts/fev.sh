@@ -104,6 +104,20 @@ function record_history() {
   "${script_dir}/record_history.sh" "${NEXT_HISTORY_DIR}" > /dev/null
 }
 
+# Record a failure status, snapshot the history, and exit. Usage: fail <status> <msg>
+function fail() {
+  update_status "$1" "$2"
+  record_history
+  exit "$1"
+}
+
+# Snapshot the history and exit with the given status, for failures where run_tool
+# already set the status. Usage: record_and_exit <status>
+function record_and_exit() {
+  record_history
+  exit "$1"
+}
+
 # True if the previous history checkpoint recorded a passing (terminal) fev.sh
 # status. Used to avoid reusing (overwriting) a directory that holds a recorded
 # failure attempt.
@@ -167,8 +181,7 @@ function run_sandpiper() {
     echo
     echo "More information on some SandPiper messages can be found in sandpiper_messages.md."
     echo
-    record_history
-    exit $status
+    record_and_exit $status
   fi
   if [[ ! -f ${sv_file} ]]; then
     # If SandPiper returns 0 but the output file is missing, its presumably because the file
@@ -360,7 +373,7 @@ if [[ $NEED_FULL_FEV == false || $MISSING_SV == true ]]; then
   # - fev.eqy.upd (with match section removed)
   ${script_dir}/map_match_pipesignals.py "${TEMP_MATCH_DIR}" fev.eqy match_lines.eqy
   if [[ $? -ne 0 ]]; then
-    update_status 3 "Failed to map TLV pipesignals to Verilog in fev.eqy. (See work in ${TEMP_MATCH_DIR})" || { rc=$?; record_history; exit $rc; }
+    fail 3 "Failed to map TLV pipesignals to Verilog in fev.eqy. (See work in ${TEMP_MATCH_DIR})"
   fi
 
 
@@ -379,8 +392,7 @@ if [[ $NEED_FULL_FEV == false || $MISSING_SV == true ]]; then
     fi
     echo "Incremental FEV failed"
     # TODO: Need better instructions for the agent specific to incremental FEV failure.
-    record_history
-    exit $incremental_status
+    record_and_exit $incremental_status
   fi
 
   # Incremental FEV succeeded. Record forward progress, copy wip to feved, and copy
@@ -394,10 +406,7 @@ if [[ $NEED_FULL_FEV == false || $MISSING_SV == true ]]; then
   echo "Recorded wip.tlv in ${NEXT_HISTORY_DIR}"
   
   # Checkpoint (not in history/) wip to feved. Our policy is for feved.tlv to be read-only.
-  # Remove before copying: when feved.tlv is provisioned read-only in a way that chmod
-  # can't clear (e.g. a bind-mounted file owned by another uid in the sandbox), chmod +w
-  # and cp silently fail, feved.tlv never updates, and get_task.py next blocks on the
-  # wip.tlv/feved.tlv diff. rm-then-cp matches how fully_feved.tlv is handled below.
+  # Remove before copying to avoid a permission issue if feved.tlv's owner changes.
   rm -f feved.tlv
   cp wip.tlv feved.tlv
   chmod -w feved.tlv
@@ -427,7 +436,7 @@ if [[ -s match_lines.eqy ]]; then
   echo "Applying match_lines.eqy to fev_full*.eqy..."
   ${script_dir}/update_full_match.py "${TEMP_MATCH_DIR}"
   if [[ $? -ne 0 ]]; then
-    update_status 4 "Failed to update fev_full*.eqy match section by applying match_lines.eqy." || { rc=$?; record_history; exit $rc; }
+    fail 4 "Failed to update fev_full*.eqy match section by applying match_lines.eqy."
   fi
 else
   echo "Skipping application of match_lines.eqy to fev_full*.eqy (not present or empty)."
@@ -447,10 +456,10 @@ for fev_file in fev_full.eqy fev_full_*.eqy; do
   # producing <temp-dir>/fev_full*.eqy files.
   ${script_dir}/map_match_pipesignals.py "${TEMP_MATCH_DIR}" "${fev_file}"
   if [[ $? -ne 0 ]]; then
-    update_status 4 "Failed to map TLV pipesignals to Verilog in ${fev_file}. (See work in ${TEMP_MATCH_DIR})" || { rc=$?; record_history; exit $rc; }
+    fail 4 "Failed to map TLV pipesignals to Verilog in ${fev_file}. (See work in ${TEMP_MATCH_DIR})"
   fi
   # Run full FEV
-  run_fev "$full_fev" "$full_fev" 4 "Full FEV (${full_fev}) failed" || { rc=$?; record_history; exit $rc; }
+  run_fev "$full_fev" "$full_fev" 4 "Full FEV (${full_fev}) failed" || record_and_exit $?
   # Make wip.tlv writable again (effective after fev_full.eqy run; others may need wip.tlv changes).
   chmod +w wip.tlv   # (no longer made read-only earlier)
 done
